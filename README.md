@@ -66,3 +66,13 @@ This will create a `dist` directory in the project root, which contains the buil
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
+
+## Donate
+
+[![Donate using DonationAlerts](static/img/donate.svg)](https://www.donationalerts.com/r/standardgroup)
+
+> *why our donations via donationalerts?*
+
+cuz we are two dumb teenagers and we are from different countries, so we cant send money to each other. donationalerts is only a one way for us.
+
+*donations are appreciated, but not required.*
