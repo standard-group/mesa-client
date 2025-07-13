@@ -69,7 +69,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Donate
 
-[![Donate using DonationAlerts](static/img/donate.svg)](https://www.donationalerts.com/r/standardgroup)
+[![Donate using DonationAlerts](public/donate.svg)](https://www.donationalerts.com/r/standardgroup)
 
 > *why our donations via donationalerts?*
 
