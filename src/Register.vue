@@ -50,14 +50,40 @@ async function handleRegister() {
         isLoading.value = true;
         errorMessage.value = "";
 
-        // TODO: implement this all later and better
-        const result = await invoke("register", {
+        // Step 1: Generate keypair
+        const keypair = await invoke("generate_keypair");
+        console.log("Generated keypair:", keypair);
+
+        // Step 2: Encrypt the private key with the user's password
+        // Type guard for keypair
+        if (
+            typeof keypair !== "object" ||
+            keypair === null ||
+            !("private_key" in keypair) ||
+            typeof (keypair as any).private_key !== "string"
+        ) {
+            throw new Error("Invalid keypair returned from generate_keypair");
+        }
+        const encryptedKey = await invoke("encrypt_private_key", {
+            privateKeyBase64: (keypair as any).private_key,
+            password: password.value
+        });
+        console.log("Encrypted private key:", encryptedKey);
+
+        // Step 3: Register with the server
+        const registerResult = await invoke("register", {
             username: username.value,
             password: password.value,
             server: serverToUse
         });
+        console.log("Registration successful:", registerResult);
 
-        console.log("Registration successful:", result);
+        // Step 4: Store the encrypted private key locally
+        await invoke("save_my_key", {
+            encrypted: encryptedKey
+        });
+        console.log("Private key saved locally");
+
         // TODO: implement navigation
         router.push('/login');
 

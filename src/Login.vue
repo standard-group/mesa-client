@@ -10,6 +10,7 @@ const router = useRouter();
 
 const username = ref("");
 const password = ref("");
+const serveraddress = ref("");
 const rememberMe = ref(false);
 const isLoading = ref(false);
 const errorMessage = ref("");
@@ -125,6 +126,12 @@ const closeWindow = async () => {
                         <label for="username" class="form-label">Username</label>
                         <input id="username" v-model="username" type="text" class="form-input"
                             placeholder="Enter your username" :disabled="isLoading" autocomplete="username" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="serveraddress" class="form-label">Server Address</label>
+                        <input id="serveraddress" v-model="serveraddress" type="text" class="form-input"
+                            placeholder="Enter server address (domain)" :disabled="isLoading" autocomplete="username" />
                     </div>
 
                     <div class="form-group">
