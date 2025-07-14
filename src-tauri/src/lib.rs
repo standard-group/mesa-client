@@ -205,6 +205,24 @@ async fn load_my_key(app_handle: AppHandle) -> Result<EncryptedKeyResponse, Stri
     load_encrypted_key(&app_handle)
 }
 
+#[tauri::command]
+fn get_build_version() -> String {
+    let base_version = env!("CARGO_PKG_VERSION");
+    let build_date = env!("BUILD_DATE");
+    let git_commit = env!("GIT_COMMIT");
+
+    let build_type = option_env!("MESA_BUILD_TYPE").unwrap_or("release");
+
+    match build_type {
+        "release" => format!("v{}", base_version),
+        "beta" => format!("v{}-beta+{}", base_version, build_date),
+        "nightly" => format!("v{}+{}", base_version, build_date),
+        "debug" => format!("v{}+git{}", base_version, git_commit),
+        "internal" => format!("{}-dev", build_date),
+        _ => format!("v{}+{}", base_version, build_date),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -219,7 +237,8 @@ pub fn run() {
             decrypt_private_key,
             register,
             save_my_key,
-            load_my_key
+            load_my_key,
+            get_build_version
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
