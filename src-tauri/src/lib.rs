@@ -1,17 +1,20 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+// commenting 
 use base64::{engine::general_purpose, Engine as _};
-use ed25519_dalek::{SigningKey, VerifyingKey};
+use ed25519_dalek::SigningKey;
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
-// for encryption
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Key, Nonce,
 };
 use pbkdf2::pbkdf2_hmac;
 use rand::{rng, RngCore};
-use sha2::{Digest, Sha256}; // for hashing passwords (though PBKDF2 is better for KDF) // for generating random salt and nonce
+use reqwest;
+use sha2::Sha256;
+use tauri::{AppHandle, Manager};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeypairResponse {
@@ -24,6 +27,31 @@ pub struct EncryptedKeyResponse {
     pub encrypted_data_base64: String,
     pub salt_base64: String,
     pub nonce_base64: String, // IV for AES-GCM
+}
+
+fn get_key_storage_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app_handle
+        .path()
+        .app_config_dir()
+        .map_err(|e| format!("Failed to find config dir: {}", e))?;
+    let path = dir.join("mesa").join("private_key.json");
+    Ok(path)
+}
+
+fn store_encrypted_key(app_handle: &AppHandle, data: &EncryptedKeyResponse) -> Result<(), String> {
+    let json = serde_json::to_string(data).map_err(|e| e.to_string())?;
+    let path = get_key_storage_path(app_handle)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(path, json).map_err(|e| e.to_string())
+}
+
+fn load_encrypted_key(app_handle: &AppHandle) -> Result<EncryptedKeyResponse, String> {
+    let path = get_key_storage_path(app_handle)?;
+    let content = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let data: EncryptedKeyResponse = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    Ok(data)
 }
 
 #[tauri::command]
@@ -39,7 +67,7 @@ async fn generate_keypair() -> Result<KeypairResponse, String> {
     let keypair: SigningKey = SigningKey::generate(&mut csprng);
 
     let public_key_bytes = keypair.verifying_key().to_bytes();
-    let secret_key_bytes = keypair.to_bytes(); // Use .to_bytes() for SigningKey
+    let secret_key_bytes = keypair.to_bytes();
 
     let public_key_base64 = general_purpose::STANDARD.encode(&public_key_bytes);
     let private_key_base64 = general_purpose::STANDARD.encode(&secret_key_bytes);
@@ -67,7 +95,7 @@ async fn encrypt_private_key(
     rng().fill_bytes(&mut salt);
 
     // Derive a 32-byte (256-bit) AES key from the password and salt using PBKDF2
-    const PBKDF2_ITERATIONS: u32 = 100_000; // Recommended iterations
+    const PBKDF2_ITERATIONS: u32 = 100_000;
     let mut key_bytes = [0u8; 32]; // 256-bit key
     pbkdf2_hmac::<Sha256>(
         &password.as_bytes(),
@@ -136,16 +164,63 @@ async fn decrypt_private_key(
     Ok(general_purpose::STANDARD.encode(&plaintext))
 }
 
+#[tauri::command]
+async fn register(username: String, password: String, server: String) -> Result<String, String> {
+    let keypair = generate_keypair().await?;
+    
+    // Clone the password before using it in encrypt_private_key
+    let _encrypted = encrypt_private_key(keypair.private_key.clone(), password.clone()).await?;
+
+    let payload = serde_json::json!({
+        "username": username,
+        "server_domain": server,
+        "password": password,
+        "pubkey": keypair.public_key,
+    });
+
+    println!("{}", &payload.to_string());
+
+    // TODO: change to https (http only for debugging rn)
+    let url = format!("http://{}/api/v1/register", server);
+
+    let client = reqwest::Client::new();
+    let res = client
+        .post(url)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    let body = res.text().await.map_err(|e| e.to_string())?;
+    Ok(body)
+}
+
+#[tauri::command]
+async fn save_my_key(app_handle: AppHandle, encrypted: EncryptedKeyResponse) -> Result<(), String> {
+    store_encrypted_key(&app_handle, &encrypted)
+}
+
+#[tauri::command]
+async fn load_my_key(app_handle: AppHandle) -> Result<EncryptedKeyResponse, String> {
+    load_encrypted_key(&app_handle)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_os::init())
         .invoke_handler(tauri::generate_handler![
-            greet, 
+            greet,
             generate_keypair,
             encrypt_private_key,
-            decrypt_private_key
-        ]) // Ensure generate_keypair is included
+            decrypt_private_key,
+            register,
+            save_my_key,
+            load_my_key
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
