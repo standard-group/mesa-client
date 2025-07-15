@@ -29,7 +29,7 @@ async function handleLogin() {
         const result = await invoke("login", {
             username: username.value,
             password: password.value,
-            remember: rememberMe.value
+            server: serveraddress.value
         });
 
         console.log("Login successful:", result);

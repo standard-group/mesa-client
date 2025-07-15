@@ -259,6 +259,7 @@ pub fn run() {
             encrypt_private_key,
             decrypt_private_key,
             register,
+            login,
             save_my_key,
             load_my_key,
             get_build_version
