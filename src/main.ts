@@ -1,5 +1,12 @@
-import { createApp } from "vue";
+import { createApp, h, Suspense } from "vue";
 import App from "./App.vue";
 import router from "./router";
 
-createApp(App).use(router).mount("#app");
+createApp({
+  render: () => h(Suspense, null, {
+    default: () => h(App),
+    fallback: () => h("div", "Loading...")
+  })
+})
+.use(router)
+.mount("#app");
