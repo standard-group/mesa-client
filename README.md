@@ -67,9 +67,13 @@ This will create a `dist` directory in the project root, which contains the buil
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
 
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fstandard-group%2Fmesa-client.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fstandard-group%2Fmesa-client?ref=badge_large)
+
 ## Donate
 
 [![Donate using DonationAlerts](public/donate.svg)](https://www.donationalerts.com/r/standardgroup)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fstandard-group%2Fmesa-client.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fstandard-group%2Fmesa-client?ref=badge_shield)
 
 > *why our donations via donationalerts?*
 
