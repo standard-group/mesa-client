@@ -177,11 +177,34 @@ async fn register(username: String, password: String, server: String) -> Result<
         "password": password,
         "pubkey": keypair.public_key,
     });
-
+    
+    // TODO: remove this (only for debugging)
     println!("{}", &payload.to_string());
 
-    // TODO: change to https (http only for debugging rn)
+    // TODO: change to https (http only for debugging right now)
     let url = format!("http://{}/api/v1/register", server);
+
+    let client = reqwest::Client::new();
+    let res = client
+        .post(url)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    let body = res.text().await.map_err(|e| e.to_string())?;
+    Ok(body)
+}
+
+#[tauri::command]
+async fn login(username: String, password: String, server: String) -> Result<String, String> {
+    let payload = serde_json::json!({
+        "username": username,
+        "server_domain": server,
+        "password": password,
+    });
+
+    let url = format!("http://{}/api/v1/login", server);
 
     let client = reqwest::Client::new();
     let res = client
