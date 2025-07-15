@@ -2,7 +2,7 @@
 // commenting 
 use base64::{engine::general_purpose, Engine as _};
 use ed25519_dalek::SigningKey;
-use rand_core::OsRng;
+use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -11,7 +11,7 @@ use aes_gcm::{
     Aes256Gcm, Key, Nonce,
 };
 use pbkdf2::pbkdf2_hmac;
-use rand::{rng, RngCore};
+use rand::{thread_rng, RngCore};
 use reqwest;
 use sha2::Sha256;
 use tauri::{AppHandle, Manager};
@@ -92,7 +92,7 @@ async fn encrypt_private_key(
 
     // Generate a random salt
     let mut salt = [0u8; 16]; // 128-bit salt
-    rng().fill_bytes(&mut salt);
+    thread_rng().fill_bytes(&mut salt);
 
     // Derive a 32-byte (256-bit) AES key from the password and salt using PBKDF2
     const PBKDF2_ITERATIONS: u32 = 100_000;
@@ -108,7 +108,7 @@ async fn encrypt_private_key(
 
     // Generate a random nonce (Initialization Vector) for AES-GCM
     let mut nonce_bytes = [0u8; 12]; // 96-bit nonce for GCM
-    rng().fill_bytes(&mut nonce_bytes);
+    thread_rng().fill_bytes(&mut nonce_bytes);
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     // Encrypt the private key

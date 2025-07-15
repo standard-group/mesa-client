@@ -1,3 +1,5 @@
+![Start background image for GitHub's README](public/startbgforgithub.jpg)
+
 # Project Mesa Client
 
 This is the client-side code for the Project Mesa desktop application. It is built using Vue.js + Vite and Tauri.
