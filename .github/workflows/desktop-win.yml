@@ -1,4 +1,4 @@
-name: Desktop Build - Windows (nightly)
+name: Desktop Build Mesa - Windows (nightly) 
 
 on:
   workflow_dispatch:
