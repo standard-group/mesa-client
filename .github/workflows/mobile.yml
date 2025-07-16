@@ -1,13 +1,11 @@
-name: Mobile Build Mesa - Android (nightly)
+name: Mobile Build Mesa – Android (nightly)
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: read
@@ -15,17 +13,12 @@ permissions:
 
 jobs:
   build:
-    name: Build for Android
+    name: Build for Android (armv7 + aarch64 + x86 + x86_64)
     runs-on: ubuntu-latest
-    env:
-      ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
-      NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/25.2.9519653
-      ANDROID_NDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}/ndk/25.2.9519653
-      ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/25.2.9519653
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -36,10 +29,10 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.x"
+          node-version: "22"
           cache: "pnpm"
 
-      - name: Install Rust with Android target
+      - name: Install Rust + Android targets
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
@@ -50,47 +43,49 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      - name: Setup Android SDK
+      - name: Set up Android SDK & NDK
         uses: android-actions/setup-android@v3
         with:
-          extra-packages: platform-tools platforms;android-34 build-tools;34.0.0 ndk;25.2.9519653
+          extra-packages: |
+            platform-tools
+            platforms;android-34
+            build-tools;34.0.0
+            ndk;25.2.9519653
+
+      # Make the NDK path available for subsequent steps
+      - name: Export NDK variables
+        run: |
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
 
       - name: Verify NDK path exists
-        run: |
-          ls -la $ANDROID_NDK_ROOT || echo "NDK directory not found"
+        run: ls -la "$ANDROID_NDK_ROOT"
 
-      - name: Set up environment for Android build
-        run: |
-          echo "MESA_BUILD_TYPE=nightly" >> $GITHUB_ENV
-          echo "TAURI_ANDROID_TARGET=aarch64-linux-android" >> $GITHUB_ENV
-
-      - name: Install dependencies
+      - name: Install frontend deps
         run: pnpm install
 
-      - name: Initialize Tauri Android
-        run: |
-          pnpm tauri android init --ci
+      - name: Tauri Android init (CI mode)
+        run: pnpm tauri android init --ci
         env:
           JAVA_HOME: ${{ env.JAVA_HOME }}
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           NDK_HOME: ${{ env.NDK_HOME }}
 
-      - name: Build Tauri Android APK
-        run: |
-          pnpm tauri android build --apk
+      - name: Build APK for all targets
+        run: pnpm tauri android build --apk
         env:
           JAVA_HOME: ${{ env.JAVA_HOME }}
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           NDK_HOME: ${{ env.NDK_HOME }}
 
       - name: Get build date (UTC)
         id: date
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
 
-      - name: Upload Android APK
+      - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mesa-android-nightly-${{ steps.date.outputs.date }}
           path: |
-            src-tauri/gen/android/app/build/outputs/apk/release/*.apk
-            src-tauri/gen/android/app/build/outputs/apk/debug/*.apk
+            src-tauri/gen/android/app/build/outputs/apk/**/*.apk
