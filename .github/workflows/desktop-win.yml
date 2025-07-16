@@ -9,6 +9,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   build:
     name: Build on Windows
@@ -58,4 +62,5 @@ jobs:
         with:
           name: mesa-client-nightly-${{ steps.date.outputs.date }}
           path: |
-            src-tauri/target/release/bundle/windows/
+            src-tauri/target/release/bundle/msi/
+            src-tauri/target/release/bundle/nsis/
