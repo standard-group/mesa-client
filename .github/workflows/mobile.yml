@@ -37,7 +37,7 @@ jobs:
       - name: Install Rust with Android target
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: armv7-linux-android
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
