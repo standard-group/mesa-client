@@ -44,7 +44,7 @@ jobs:
           distribution: "temurin"
 
       # ------------------------------------------------------------------
-      #  Download & install the exact NDK r25b (25.2.9519653)
+      #  Download & install NDK 25.2.9519653
       # ------------------------------------------------------------------
       - name: Download & install NDK 25.2.9519653
         run: |
@@ -63,6 +63,8 @@ jobs:
           echo "✅ NDK ready at $ANDROID_NDK_ROOT"
 
       # ------------------------------------------------------------------
+      #  Install Android SDK components (without ndk; we already have it)
+      # ------------------------------------------------------------------
       - name: Install Android SDK components
         uses: android-actions/setup-android@v3
         with:
@@ -70,6 +72,26 @@ jobs:
             platform-tools
             platforms;android-34
             build-tools;34.0.0
+
+      # ------------------------------------------------------------------
+      #  Cargo linker overrides for all targets
+      # ------------------------------------------------------------------
+      - name: Create .cargo/config.toml
+        run: |
+          mkdir -p .cargo
+          cat > .cargo/config.toml <<'EOF'
+          [target.aarch64-linux-android]
+          linker = "aarch64-linux-android24-clang"
+
+          [target.armv7-linux-androideabi]
+          linker = "armv7a-linux-androideabi24-clang"
+
+          [target.i686-linux-android]
+          linker = "i686-linux-android24-clang"
+
+          [target.x86_64-linux-android]
+          linker = "x86_64-linux-android24-clang"
+          EOF
 
       - name: Install frontend deps
         run: pnpm install
@@ -80,6 +102,45 @@ jobs:
           JAVA_HOME: ${{ env.JAVA_HOME }}
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           NDK_HOME: ${{ env.NDK_HOME }}
+
+      # ------------------------------------------------------------------
+      #  Create throw-away signing keystore
+      # ------------------------------------------------------------------
+      - name: Generate debug keystore
+        run: |
+          keytool -genkey -v \
+            -keystore $RUNNER_TEMP/upload-keystore.jks \
+            -storetype JKS \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias upload \
+            -storepass android \
+            -keypass android \
+            -dname "CN=CI, OU=CI, O=CI, L=CI, S=CI, C=US"
+
+      - name: Inject signing config into Gradle
+        run: |
+          cat >> src-tauri/gen/android/app/build.gradle <<'EOF'
+
+          android {
+              signingConfigs {
+                  ci {
+                      storeFile file(System.getenv("RUNNER_TEMP") + "/upload-keystore.jks")
+                      storePassword "android"
+                      keyAlias "upload"
+                      keyPassword "android"
+                  }
+              }
+
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.ci
+                  }
+                  debug {
+                      signingConfig signingConfigs.ci
+                  }
+              }
+          }
+          EOF
 
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
