@@ -120,35 +120,27 @@ jobs:
       - name: Patch build.gradle to sign APKs
         run: |
           set -e
-          APP_GRADLE=$(find src-tauri -name build.gradle | grep -E 'app[/-]build.gradle$' | head -n1)
+          APP_GRADLE=$(find src-tauri/gen/android -maxdepth 2 -name 'build.gradle*' | head -n1)
+          [ -z "$APP_GRADLE" ] && { echo "No build.gradle(.kts) found"; exit 1; }
+
           echo "Patching $APP_GRADLE"
 
-          # Insert right after the first "android {" line
-          awk '
-            /^[[:space:]]*android[[:space:]]*\{/ && !done {
-              print
-              print "    signingConfigs {"
-              print "        ci {"
-              print "            storeFile rootProject.file('$(pwd)/.ci/upload-keystore.jks')"
-              print "            storePassword \"android\""
-              print "            keyAlias \"upload\""
-              print "            keyPassword \"android\""
-              print "        }"
-              print "    }"
-              print ""
-              print "    buildTypes {"
-              print "        release {"
-              print "            signingConfig signingConfigs.ci"
-              print "        }"
-              print "        debug {"
-              print "            signingConfig signingConfigs.ci"
-              print "        }"
-              print "    }"
-              done = 1
-              next
+          cat >> "$APP_GRADLE" <<'GRADLE'
+          android {
+            signingConfigs {
+              ci {
+                storeFile rootProject.file('../../../../.ci/upload-keystore.jks')
+                storePassword "android"
+                keyAlias "upload"
+                keyPassword "android"
+              }
             }
-            { print }
-          ' "$APP_GRADLE" > "$APP_GRADLE.tmp" && mv "$APP_GRADLE.tmp" "$APP_GRADLE"
+            buildTypes {
+              release { signingConfig signingConfigs.ci }
+              debug   { signingConfig signingConfigs.ci }
+            }
+          }
+          GRADLE
 
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
