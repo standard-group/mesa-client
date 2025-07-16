@@ -10,7 +10,7 @@ Tauri offers almos the same functionality as Electron, but with a more modern, f
 
 ## Getting Started
 
-To get started, you need to have Node.js and Rust installed on your machine. We recommend using the latest LTS version of Node.js, version 22.16.x or higher.
+To get started, you need to have Node.js and Rust installed on your machine. We recommend using the latest LTS version of Node.js, version 22.1x.x or higher.
 
 As well, we recommend using the `pnpm` package manager, instead of `npm`, but you still can use `npm` if you prefer. (we did not tested it)
 
