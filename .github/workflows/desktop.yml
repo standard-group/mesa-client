@@ -70,7 +70,8 @@ jobs:
       - name: Run Tauri build script (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: "$GITHUB_WORKSPACE/.ci/build.ps1"
+        run: |
+          & "$env:GITHUB_WORKSPACE/.ci/build.ps1"
 
       - name: Get build date (UTC)
         id: date
