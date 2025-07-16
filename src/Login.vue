@@ -2,10 +2,7 @@
 import { ref } from "vue";
 import { useRouter } from 'vue-router';
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 
-// Get the current window instance
-const win = getCurrentWindow();
 const router = useRouter();
 
 const username = ref("");
@@ -21,98 +18,42 @@ async function handleLogin() {
         return;
     }
 
-    try {
-        isLoading.value = true;
-        errorMessage.value = "";
+    isLoading.value = true;
+    errorMessage.value = "";
 
-        // TODO: tauri rusti hate it
-        const result = await invoke("login", {
+    try {
+        const result = await invoke<string>("login", {
             username: username.value,
             password: password.value,
             server: serveraddress.value
         });
 
-        console.log("Login successful:", result);
-        // TODO: implement login functionality
+        if (result === "invalid credentials") {
+            errorMessage.value = "Invalid username or password.";
+        } else if (result === "success") {
+            console.log("Login successful:", result);
+            router.push({ name: 'Home' });
+        } else {
+            console.log("Login failed:", result);
+            errorMessage.value = "An unknown error occurred. Please try again, or if the problem persists, share this problem with the developers: ", result;
+        }
 
     } catch (error) {
-        console.error("Login error:", error);
-        errorMessage.value = "Invalid username or password";
+        // this will now catch Rust panics or network errors
+        console.error("Login invocation error:", error);
+        errorMessage.value = "Could not connect to the login service.";
     } finally {
         isLoading.value = false;
     }
 }
 
-const goBack = () => {
-    router.push({ name: 'Start' });
-};
-
 const goToRegister = () => {
     router.push('/register');
 };
-
-const minimizeWindow = async () => {
-    try {
-        await win.minimize();
-    } catch (error) {
-        console.error("minimize failed:", error);
-    }
-};
-
-const maximizeWindow = async () => {
-    try {
-        const isMax = await win.isMaximized();
-        if (isMax) {
-            await win.unmaximize();
-        } else {
-            await win.maximize();
-        }
-    } catch (error) {
-        console.error("toggleMaximize failed:", error);
-    }
-};
-
-const closeWindow = async () => {
-    try {
-        await win.close();
-    } catch (e) {
-        console.error("close failed", e);
-    }
-};
-
 </script>
 
 <template>
     <main class="app-container">
-        <div class="titlebar">
-            <div class="titlebar-left">
-                <button class="back-button" @click="goBack" type="button">
-                    <svg width="16" height="16" viewBox="0 0 16 16">
-                        <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" fill="none" />
-                    </svg>
-                </button>
-                <div class="titlebar-title">Project Mesa - Login</div>
-            </div>
-            <div class="titlebar-controls">
-                <button class="titlebar-button minimize" @click.stop="minimizeWindow" type="button">
-                    <svg width="16" height="16" viewBox="0 0 16 16">
-                        <rect x="3" y="7" width="10" height="2" fill="currentColor" />
-                    </svg>
-                </button>
-                <button class="titlebar-button maximize" @click.stop="maximizeWindow" type="button">
-                    <svg width="16" height="16" viewBox="0 0 16 16">
-                        <rect x="3" y="3" width="10" height="10" stroke="currentColor" stroke-width="1.5" fill="none" />
-                    </svg>
-                </button>
-                <button class="titlebar-button close" @click.stop="closeWindow" type="button">
-                    <svg width="16" height="16" viewBox="0 0 16 16">
-                        <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-
         <div class="login-container">
             <div class="login-content">
                 <div class="logo-section">
