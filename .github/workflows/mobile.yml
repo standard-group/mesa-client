@@ -55,7 +55,6 @@ jobs:
       - name: Locate installed NDK 25.2.9519653
         id: ndk-path
         run: |
-          # Let sdkmanager tell us where it put the NDK
           ndk_path=$(dirname "$(find "$ANDROID_SDK_ROOT" -type f -name ndk-build | grep -E '25\.2\.9519653' | head -n1)")
           echo "NDK_ROOT=$ndk_path" >> $GITHUB_ENV
           echo "NDK_HOME=$ndk_path" >> $GITHUB_ENV
