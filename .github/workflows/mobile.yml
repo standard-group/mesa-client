@@ -63,7 +63,7 @@ jobs:
           echo "✅ NDK ready at $ANDROID_NDK_ROOT"
 
       # ------------------------------------------------------------------
-      #  Install Android SDK components (without ndk; we already have it)
+      #  Android SDK components (NDK already in place)
       # ------------------------------------------------------------------
       - name: Install Android SDK components
         uses: android-actions/setup-android@v3
@@ -74,7 +74,7 @@ jobs:
             build-tools;34.0.0
 
       # ------------------------------------------------------------------
-      #  Cargo linker overrides for all targets
+      #  Cargo linker overrides
       # ------------------------------------------------------------------
       - name: Create .cargo/config.toml
         run: |
@@ -104,46 +104,23 @@ jobs:
           NDK_HOME: ${{ env.NDK_HOME }}
 
       # ------------------------------------------------------------------
-      #  Create throw-away signing keystore
+      #  Create throw-away debug keystore + insert signing config
       # ------------------------------------------------------------------
-      - name: Generate debug keystore
+      - name: Create .ci directory & debug keystore
         run: |
+          mkdir -p .ci
           keytool -genkey -v \
-            -keystore $RUNNER_TEMP/upload-keystore.jks \
-            -storetype JKS \
-            -keyalg RSA -keysize 2048 -validity 10000 \
+            -keystore .ci/upload-keystore.jks \
+            -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 \
             -alias upload \
             -storepass android \
             -keypass android \
             -dname "CN=CI, OU=CI, O=CI, L=CI, S=CI, C=US"
 
-      - name: Locate real app/build.gradle
-        id: gradle-path
+      - name: Apply signing config
         run: |
-          path=$(find src-tauri -name build.gradle | grep -E 'app[/-]build.gradle$' | head -n1)
-          echo "GRADLE_PATH=$path" >> $GITHUB_ENV
-          echo "Found build.gradle at: $path"
-
-      - name: Inject signing config into Gradle
-        run: |
-          sed -i "/^android {/a\\
-          \    signingConfigs {\\
-          \        ci {\\
-          \            storeFile file(System.getenv('RUNNER_TEMP') + '/upload-keystore.jks')\\
-          \            storePassword 'android'\\
-          \            keyAlias 'upload'\\
-          \            keyPassword 'android'\\
-          \        }\\
-          \    }\\
-          \\
-          \    buildTypes {\\
-          \        release {\\
-          \            signingConfig signingConfigs.ci\\
-          \        }\\
-          \        debug {\\
-          \            signingConfig signingConfigs.ci\\
-          \        }\\
-          \    }" "$GRADLE_PATH"
+          cp .ci/signing.gradle src-tauri/gen/android/app/signing.gradle
+          echo "apply from: 'signing.gradle'" >> src-tauri/gen/android/app/build.gradle
 
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
