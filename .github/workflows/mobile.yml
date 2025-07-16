@@ -117,10 +117,38 @@ jobs:
             -keypass android \
             -dname "CN=CI, OU=CI, O=CI, L=CI, S=CI, C=US"
 
-      - name: Apply signing config
+      - name: Patch build.gradle to sign APKs
         run: |
-          cp .ci/signing.gradle src-tauri/gen/android/app/signing.gradle
-          echo "apply from: 'signing.gradle'" >> src-tauri/gen/android/app/build.gradle
+          set -e
+          APP_GRADLE=$(find src-tauri -name build.gradle | grep -E 'app[/-]build.gradle$' | head -n1)
+          echo "Patching $APP_GRADLE"
+
+          # Insert right after the first "android {" line
+          awk '
+            /^[[:space:]]*android[[:space:]]*\{/ && !done {
+              print
+              print "    signingConfigs {"
+              print "        ci {"
+              print "            storeFile rootProject.file('$(pwd)/.ci/upload-keystore.jks')"
+              print "            storePassword \"android\""
+              print "            keyAlias \"upload\""
+              print "            keyPassword \"android\""
+              print "        }"
+              print "    }"
+              print ""
+              print "    buildTypes {"
+              print "        release {"
+              print "            signingConfig signingConfigs.ci"
+              print "        }"
+              print "        debug {"
+              print "            signingConfig signingConfigs.ci"
+              print "        }"
+              print "    }"
+              done = 1
+              next
+            }
+            { print }
+          ' "$APP_GRADLE" > "$APP_GRADLE.tmp" && mv "$APP_GRADLE.tmp" "$APP_GRADLE"
 
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
