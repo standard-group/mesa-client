@@ -120,6 +120,7 @@ jobs:
         run: |
           # Find the correct build file
           APP_GRADLE=$(find src-tauri/gen/android -name 'build.gradle*' -path '*/app/*' | head -n1)
+          KEYSTORE_PATH="$(pwd)/.ci/upload-keystore.jks"
           
           if [[ "$APP_GRADLE" == *.kts ]]; then
             # Kotlin DSL approach
@@ -127,7 +128,7 @@ jobs:
             sed -i '/^android {/a\
             signingConfigs {\
                 create("ci") {\
-                    storeFile = rootProject.file("../../../../../.ci/upload-keystore.jks")\
+                    storeFile = file("${KEYSTORE_PATH}")\
                     storePassword = "android"\
                     keyAlias = "upload"\
                     keyPassword = "android"\
@@ -146,7 +147,7 @@ jobs:
             sed -i '/^android {/a\
             signingConfigs {\
                 ci {\
-                    storeFile rootProject.file("../../../../../.ci/upload-keystore.jks")\
+                    storeFile file("${KEYSTORE_PATH}")\
                     storePassword "android"\
                     keyAlias "upload"\
                     keyPassword "android"\
