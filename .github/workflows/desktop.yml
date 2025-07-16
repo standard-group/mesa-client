@@ -47,16 +47,24 @@ jobs:
       - name: Set build type for nightly
         run: echo "MESA_BUILD_TYPE=nightly" >> $GITHUB_ENV
 
-      - name: Run Tauri build script (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./ci/build.ps1
+      - name: Debug workspace (list files)
+        run: |
+          echo "Working directory: $PWD"
+          echo "Contents of repo root:"
+          ls -al .
+          echo "Contents of ci/:"
+          ls -al ci || echo "ci/ folder not found"
+
+      - name: Make build.sh executable (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x "$GITHUB_WORKSPACE/ci/build.sh"
 
       - name: Run Tauri build script (Linux/macOS)
         if: runner.os != 'Windows'
         shell: bash
-        run: ./ci/build.sh
-
+        run: |
+          bash "$GITHUB_WORKSPACE/ci/build.sh"
 
       - name: Get build date (UTC)
         id: date
