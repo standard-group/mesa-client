@@ -127,46 +127,53 @@ jobs:
           # Find the correct build file
           APP_GRADLE=$(find src-tauri/gen/android -name 'build.gradle*' -path '*/app/*' | head -n1)
           
+          # Get absolute path to keystore
+          KEYSTORE_PATH="$(pwd)/.ci/upload-keystore.jks"
+          
+          echo "Found build file: $APP_GRADLE"
+          echo "Keystore path: $KEYSTORE_PATH"
+          echo "Keystore exists: $(test -f "$KEYSTORE_PATH" && echo "yes" || echo "no")"
+          
+          # Create signing configuration
           if [[ "$APP_GRADLE" == *.kts ]]; then
             # Kotlin DSL approach
-            # Insert signing configuration after the android { block starts
-            sed -i '/^android {/a\
-            signingConfigs {\
-                create("ci") {\
-                    storeFile = rootProject.file("../../../../.ci/upload-keystore.jks")\
-                    storePassword = "android"\
-                    keyAlias = "upload"\
-                    keyPassword = "android"\
-                }\
-            }\
-            buildTypes {\
-                getByName("debug") {\
-                    signingConfig = signingConfigs.getByName("ci")\
-                }\
-                getByName("release") {\
-                    signingConfig = signingConfigs.getByName("ci")\
-                }\
-            }' "$APP_GRADLE"
+            if ! grep -q "signingConfigs" "$APP_GRADLE"; then
+              # Insert signing configuration after android {
+              sed -i '/^android {/a\
+              signingConfigs {\
+                  create("ci") {\
+                      storeFile = file("'"$KEYSTORE_PATH"'")\
+                      storePassword = "android"\
+                      keyAlias = "upload"\
+                      keyPassword = "android"\
+                  }\
+              }' "$APP_GRADLE"
+              
+              # Update buildTypes
+              sed -i '/getByName("debug")/,/}/ s/}/    signingConfig = signingConfigs.getByName("ci")\n}/' "$APP_GRADLE"
+              sed -i '/getByName("release")/,/}/ s/}/    signingConfig = signingConfigs.getByName("ci")\n}/' "$APP_GRADLE"
+            fi
           else
             # Groovy approach
-            sed -i '/^android {/a\
-            signingConfigs {\
-                ci {\
-                    storeFile rootProject.file("../../../../.ci/upload-keystore.jks")\
-                    storePassword "android"\
-                    keyAlias "upload"\
-                    keyPassword "android"\
-                }\
-            }\
-            buildTypes {\
-                debug {\
-                    signingConfig signingConfigs.ci\
-                }\
-                release {\
-                    signingConfig signingConfigs.ci\
-                }\
-            }' "$APP_GRADLE"
+            if ! grep -q "signingConfigs" "$APP_GRADLE"; then
+              sed -i '/^android {/a\
+              signingConfigs {\
+                  ci {\
+                      storeFile file("'"$KEYSTORE_PATH"'")\
+                      storePassword "android"\
+                      keyAlias "upload"\
+                      keyPassword "android"\
+                  }\
+              }' "$APP_GRADLE"
+              
+              # Update buildTypes
+              sed -i '/debug {/,/}/ s/}/    signingConfig signingConfigs.ci\n}/' "$APP_GRADLE"
+              sed -i '/release {/,/}/ s/}/    signingConfig signingConfigs.ci\n}/' "$APP_GRADLE"
+            fi
           fi
+          
+          echo "Modified build file:"
+          cat "$APP_GRADLE"
 
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
