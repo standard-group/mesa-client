@@ -37,7 +37,7 @@ jobs:
       - name: Install Rust with Android target
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+          targets: aarch64,armv7,i686,x86_64
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -66,7 +66,7 @@ jobs:
       - name: Set up environment for Android build
         run: |
           echo "MESA_BUILD_TYPE=nightly" >> $GITHUB_ENV
-          echo "TAURI_ANDROID_TARGET=aarch64-linux-android" >> $GITHUB_ENV
+          echo "TAURI_ANDROID_TARGET=aarch64" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: pnpm install
