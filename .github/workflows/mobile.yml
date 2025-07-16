@@ -52,10 +52,12 @@ jobs:
         run: |
           echo "MESA_BUILD_TYPE=nightly" >> $GITHUB_ENV
           echo "TAURI_ANDROID_TARGET=aarch64-linux-android" >> $GITHUB_ENV
-          pnpm tauri android init
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install
+
+      - name: Tauri Android Init
+        run: pnpm tauri android init
 
       - name: Build Tauri Android APK
         run: pnpm tauri android build
