@@ -52,12 +52,15 @@ jobs:
             build-tools;34.0.0
             ndk;25.2.9519653
 
-      # Make the NDK path available for subsequent steps
-      - name: Export NDK variables
+      - name: Locate installed NDK 25.2.9519653
+        id: ndk-path
         run: |
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+          # Let sdkmanager tell us where it put the NDK
+          ndk_path=$(dirname "$(find "$ANDROID_SDK_ROOT" -type f -name ndk-build | grep -E '25\.2\.9519653' | head -n1)")
+          echo "NDK_ROOT=$ndk_path" >> $GITHUB_ENV
+          echo "NDK_HOME=$ndk_path" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$ndk_path" >> $GITHUB_ENV
+          echo "Found NDK at $ndk_path"
 
       - name: Verify NDK path exists
         run: ls -la "$ANDROID_NDK_ROOT"
