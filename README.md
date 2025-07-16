@@ -13,7 +13,7 @@ This is the client-side code for the Project Mesa desktop application. It is bui
 
 > Why you choose Tauri?
 
-Tauri offers almos the same functionality as Electron, but with a more modern, faster and low-memory eater. It also has a better developer experience, as it is written in Rust and uses the WebView2 API for rendering.
+Tauri offers almost the same functionality as Electron, but with a more modern, faster and low-memory eater. It also has a better developer experience, as it is written in Rust and uses the WebView2 API for rendering.
 
 ## Getting Started
 
@@ -32,7 +32,7 @@ The project is structured as follows:
 - `src-tauri`: This directory contains the Tauri configuration files, including the `tauri.conf.json` file, which is used to configure the Tauri application.
 - `src`: This directory contains the source code for the client-side application. (frontend in Vue)
 
-## Building
+## Building from Source
 
 Please read [BUILDING.md](BUILDING.md) for more information.
 
