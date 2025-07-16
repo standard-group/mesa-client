@@ -52,19 +52,19 @@ jobs:
           echo "Working directory: $PWD"
           echo "Contents of repo root:"
           ls -al .
-          echo "Contents of ci/:"
-          ls -al ci || echo "ci/ folder not found"
+          echo "Contents of .ci/:"
+          ls -al .ci || echo ".ci/ folder not found"
 
       - name: Make build.sh executable (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          chmod +x "$GITHUB_WORKSPACE/ci/build.sh"
+          chmod +x "$GITHUB_WORKSPACE/.ci/build.sh"
 
       - name: Run Tauri build script (Linux/macOS)
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          bash "$GITHUB_WORKSPACE/ci/build.sh"
+          bash "$GITHUB_WORKSPACE/.ci/build.sh"
 
       - name: Get build date (UTC)
         id: date
