@@ -9,7 +9,11 @@ android {
     }
 
     buildTypes {
-        release { signingConfig signingConfigs.ci }
-        debug   { signingConfig signingConfigs.ci }
+        release {
+            signingConfig signingConfigs.ci
+        }
+        debug {
+            signingConfig signingConfigs.ci
+        }
     }
-}
+}   
