@@ -17,39 +17,9 @@ Tauri offers almos the same functionality as Electron, but with a more modern, f
 
 ## Getting Started
 
-To get started, you need to have Node.js and Rust installed on your machine. We recommend using the latest LTS version of Node.js, version 22.1x.x or higher.
+To install and run the client, go grab our latest release from [here](https://github.com/standard-group/mesa-client/releases/latest) for your platform. 
 
-As well, we recommend using the `pnpm` package manager, instead of `npm`, but you still can use `npm` if you prefer. (we did not tested it)
-
-Before doing all of these steps, you need do prerequisites from [Tauri](https://tauri.app/start/prerequisites/), since it required to do and install some tools before developing with the Tauri.
-
-1. Clone the repository:
-```bash
-git clone https://github.com/standard-group/mesa-client.git
-```
-
-2. Change the directory to the project:
-```bash
-cd mesa-client
-```
-
-3. Install the dependencies:
-```bash
-pnpm install # or npm install
-```
-
-4. Run the development server:
-```bash
-pnpm tauri dev # or npm run tauri dev
-```
-
-5. (optional) If you will be building the Android version of client, you need to install the Android SDK and NDK. You can find the instructions [here](https://tauri.app/start/prerequisites/#android).
-After that, initialize the Android environment:
-```bash
-pnpm tauri init android # or npm run tauri init android
-```
-
-Now you can run and test our app, as well help us contribute to the project.
+If you want nightly builds, you can find them [here for desktop](https://github.com/standard-group/mesa-client/actions/workflows/desktop.yml) and [here for mobile (Android)](https://github.com/standard-group/mesa-client/actions/workflows/mobile.yml).
 
 ## Contributing
 
@@ -62,15 +32,9 @@ The project is structured as follows:
 - `src-tauri`: This directory contains the Tauri configuration files, including the `tauri.conf.json` file, which is used to configure the Tauri application.
 - `src`: This directory contains the source code for the client-side application. (frontend in Vue)
 
-## Building and Running
+## Building
 
-To build the application, run the following command:
-
-```bash
-pnpm tauri build # or npm run tauri build
-```
-
-This will create a `dist` directory in the project root, which contains the built application files.
+Please read [BUILDING.md](BUILDING.md) for more information.
 
 ## License
 
