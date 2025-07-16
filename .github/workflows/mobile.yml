@@ -117,9 +117,15 @@ jobs:
             -keypass android \
             -dname "CN=CI, OU=CI, O=CI, L=CI, S=CI, C=US"
 
-      - name: Inject signing config into Gradle (safe patch)
+      - name: Locate real app/build.gradle
+        id: gradle-path
         run: |
-          # Patch only after the existing android block starts
+          path=$(find src-tauri -name build.gradle | grep -E 'app[/-]build.gradle$' | head -n1)
+          echo "GRADLE_PATH=$path" >> $GITHUB_ENV
+          echo "Found build.gradle at: $path"
+
+      - name: Inject signing config into Gradle
+        run: |
           sed -i "/^android {/a\\
           \    signingConfigs {\\
           \        ci {\\
@@ -137,7 +143,7 @@ jobs:
           \        debug {\\
           \            signingConfig signingConfigs.ci\\
           \        }\\
-          \    }" src-tauri/gen/android/app/build.gradle
+          \    }" "$GRADLE_PATH"
 
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
