@@ -5,8 +5,8 @@ import Register from "./Register.vue";
 
 const routes = [
   { path: "/", name: "Start", component: Home },
-  { path: "/login", name: "Login", component: Login },
-  { path: "/register", name: "Register", component: Register },
+  { path: "/login", name: "Login", component: Login, meta: { showBack: true } },
+  { path: "/register", name: "Register", component: Register, meta: { showBack: true } },
 ];
 
 const router = createRouter({
