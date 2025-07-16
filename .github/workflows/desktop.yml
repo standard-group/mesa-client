@@ -47,7 +47,7 @@ jobs:
       - name: Install prerequisites (Linux)
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update \
+          sudo apt-get update
           sudo apt install libwebkit2gtk-4.1-dev \
             build-essential \
             curl \
