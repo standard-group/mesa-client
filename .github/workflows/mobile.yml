@@ -98,9 +98,7 @@ jobs:
           keytool -genkey -v -keystore .ci/upload-keystore.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload -storepass android -keypass android -dname "CN=CI,OU=CI,O=CI,L=CI,S=CI,C=US"
 
       - name: Inject signing into Kotlin DSL build.gradle.kts
-        run: |
-          APP_GRADLE=$(find src-tauri/gen/android -maxdepth 2 -name 'build.gradle.kts' | head -n1)
-          sed -e '/^android {/a\signingConfigs {\create("ci") {\storeFile = rootProject.file("../../../../.ci/upload-keystore.jks")\storePassword = "android"\keyAlias = "upload"\keyPassword = "android"\}\}\buildTypes {\release { signingConfig = signingConfigs["ci"] }\debug   { signingConfig = signingConfigs["ci"] }\}\}' "$APP_GRADLE" > "$APP_GRADLE.tmp" && mv "$APP_GRADLE.tmp" "$APP_GRADLE"
+        run: sed -i '/^android {/a\    signingConfigs { create("ci") { storeFile = rootProject.file("../../../../.ci/upload-keystore.jks"); storePassword = "android"; keyAlias = "upload"; keyPassword = "android" } }; buildTypes { release { signingConfig = signingConfigs["ci"] }; debug { signingConfig = signingConfigs["ci"] } } }' "$(find src-tauri/gen/android -name build.gradle.kts | head -n1)"
 
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
