@@ -3,11 +3,9 @@ name: Desktop Build Mesa (nightly)
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: read
@@ -41,8 +39,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          # On Windows, add MSVC target; on Linux/macOS, default host target is used.
-          # We use an include with an empty string when not on Windows.
           targets: ${{ matrix.os == 'windows-latest' && 'x86_64-pc-windows-msvc' || '' }}
 
       - name: Install dependencies
@@ -51,28 +47,19 @@ jobs:
       - name: Set build type for nightly
         run: echo "MESA_BUILD_TYPE=nightly" >> $GITHUB_ENV
 
-      - name: Run Tauri build script (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: ./scripts/build.ps1
-
-      - name: Run Tauri build script (Linux/macOS)
-        if: matrix.os != 'windows-latest'
-        run: ./scripts/build.sh
-
-      - name: Get build date (Windows)
-        if: matrix.os == 'windows-latest'
-        id: date
-        shell: pwsh
+      - name: Run Tauri build script
+        shell: bash
         run: |
-          $date = Get-Date -Format "yyyyMMdd"
-          echo "date=$date" >> $env:GITHUB_OUTPUT
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            pwsh ./scripts/build.ps1
+          else
+            bash ./scripts/build.sh
+          fi
 
-      - name: Get build date (Linux/macOS)
-        if: matrix.os != 'windows-latest'
+      - name: Get build date (UTC)
         id: date
-        run: |
-          echo "date=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+        shell: bash
+        run: echo "date=$(date -u +'%Y%m%d')" >> "$GITHUB_OUTPUT"
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4

@@ -1,4 +1,4 @@
-name: Mobile Build Mesa – Android (nightly)
+name: Mobile Build Mesa (nightly)
 
 on:
   workflow_dispatch:

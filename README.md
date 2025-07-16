@@ -1,5 +1,12 @@
 ![Start background image for GitHub's README](public/startbgforgithub.jpg)
 
+<div align="center">
+    <img alt="Desktop Build Mesa (nightly)" src="https://github.com/standard-group/mesa-client/actions/workflows/desktop.yml/badge.svg?branch=main" href="https://github.com/standard-group/mesa-client/actions/workflows/desktop.yml">
+    <img alt="Mobile Build Mesa (nightly)" src="https://github.com/standard-group/mesa-client/actions/workflows/mobile.yml/badge.svg?branch=main" href="https://github.com/standard-group/mesa-client/actions/workflows/mobile.yml">
+    <img alt="Matrix" src="https://img.shields.io/matrix/project-mesa-room%3Amatrix.org?style=flat&logo=matrix" href="https://matrix.to/#/#project-mesa-room:matrix.org">
+    <img alt="Discord" src="https://img.shields.io/badge/Discord-7289DA?style=flat&logo=discord&logoColor=white" href="https://sdiscord.gg/Z997UBvFJ4">
+</div>
+
 # Project Mesa Client
 
 This is the client-side code for the Project Mesa desktop application. It is built using Vue.js + Vite and Tauri.
