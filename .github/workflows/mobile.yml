@@ -1,71 +1,68 @@
-name: Android Build
+name: Android Build - Ubuntu
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  build-android:
-    name: Build Tauri Android APK
-    runs-on: windows-latest
+  build:
+    name: Build Mesa Android on Ubuntu
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.x
-
-      - name: Set up Java
+      - name: Setup Java 17 (required by Android SDK)
         uses: actions/setup-java@v4
         with:
-          distribution: "temurin"
-          java-version: "17"
+          distribution: temurin
+          java-version: 17
 
-      - name: Set up Android SDK
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install pnpm
+        run: npm install -g pnpm@10
+
+      - name: Install Rust with Android target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install project dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Install Android SDK and NDK
         uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: 12266719
           accept-android-sdk-licenses: true
 
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android
-
-      - name: Set environment variables for Android
+      - name: Set Android build env
         run: |
+          echo "MESA_BUILD_TYPE=nightly" >> $GITHUB_ENV
+          echo "TAURI_ANDROID_TARGET=aarch64-linux-android" >> $GITHUB_ENV
+          echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "JAVA_HOME=${JAVA_HOME_17}" >> $GITHUB_ENV
-          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk-bundle" >> $GITHUB_ENV
-        shell: pwsh
+          echo "NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
+      - name: Initialize Tauri Android project
+        run: pnpm tauri android init
 
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Initialize Android project
-        run: pnpm tauri android init || echo "Already initialized"
-
-      - name: Build APK
+      - name: Build Android APK
         run: pnpm tauri android build --apk
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-          NDK_HOME: ${{ env.NDK_HOME }}
-          OPENSSL_STATIC: 1
-          OPENSSL_NO_VENDOR: 0
 
-      - name: Upload APK
+      - name: Get build date (UTC)
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+      - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: mesa-client-android-apk
-          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          name: mesa-android-nightly-${{ steps.date.outputs.date }}
+          path: src-tauri/gen/android/app/build/outputs/apk/release/*.apk
