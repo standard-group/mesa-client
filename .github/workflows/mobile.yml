@@ -49,11 +49,9 @@ jobs:
           echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
           echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
-
       - name: Sanity-check NDK
         run: |
           test -f "$ANDROID_NDK_ROOT/source.properties" || { echo "NDK broken"; exit 1; }
-
       - name: Install Android SDK components
         uses: android-actions/setup-android@v3
         with:
@@ -61,7 +59,6 @@ jobs:
             platform-tools
             platforms;android-34
             build-tools;34.0.0
-
       # ------------------------------------------------------------------
       #  Rust linker overrides
       # ------------------------------------------------------------------
@@ -78,7 +75,6 @@ jobs:
           [target.x86_64-linux-android]
           linker = "x86_64-linux-android24-clang"
           EOF
-
       - name: Install frontend deps
         run: pnpm install
 
@@ -110,7 +106,6 @@ jobs:
               sed -i '1i\plugins {\n    id '\''com.android.application'\''\n    id '\''org.jetbrains.kotlin.android'\''\n}' "$APP_GRADLE"
             fi
           fi
-
       # ------------------------------------------------------------------
       #  Create debug keystore and configure signing
       # ------------------------------------------------------------------
@@ -121,68 +116,51 @@ jobs:
             -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 \
             -alias upload -storepass android -keypass android \
             -dname "CN=CI,OU=CI,O=CI,L=CI,S=CI,C=US"
-
       - name: Configure signing
         run: |
           # Find the correct build file
           APP_GRADLE=$(find src-tauri/gen/android -name 'build.gradle*' -path '*/app/*' | head -n1)
           
-          # Get absolute path to keystore
-          KEYSTORE_PATH="$(pwd)/.ci/upload-keystore.jks"
-          
-          echo "Found build file: $APP_GRADLE"
-          echo "Keystore path: $KEYSTORE_PATH"
-          echo "Keystore exists: $(test -f "$KEYSTORE_PATH" && echo "yes" || echo "no")"
-          
-          # Create signing configuration
           if [[ "$APP_GRADLE" == *.kts ]]; then
             # Kotlin DSL approach
-            if ! grep -q "signingConfigs" "$APP_GRADLE"; then
-              # Insert signing configuration after android {
-              sed -i '/^android {/a\
-              signingConfigs {\
-                  create("ci") {\
-                      storeFile = file("'"$KEYSTORE_PATH"'")\
-                      storePassword = "android"\
-                      keyAlias = "upload"\
-                      keyPassword = "android"\
-                  }\
-              }' "$APP_GRADLE"
-              
-              # Update buildTypes
-              sed -i '/getByName("debug")/,/}/ s/}/    signingConfig = signingConfigs.getByName("ci")\n}/' "$APP_GRADLE"
-              sed -i '/getByName("release")/,/}/ s/}/    signingConfig = signingConfigs.getByName("ci")\n}/' "$APP_GRADLE"
-            fi
+            # Insert signing configuration after the android { block starts
+            sed -i '/^android {/a\
+            signingConfigs {\
+                create("ci") {\
+                    storeFile = rootProject.file("../../../../../.ci/upload-keystore.jks")\
+                    storePassword = "android"\
+                    keyAlias = "upload"\
+                    keyPassword = "android"\
+                }\
+            }\
+            buildTypes {\
+                getByName("debug") {\
+                    signingConfig = signingConfigs.getByName("ci")\
+                }\
+                getByName("release") {\
+                    signingConfig = signingConfigs.getByName("ci")\
+                }\
+            }' "$APP_GRADLE"
           else
             # Groovy approach
-            if ! grep -q "signingConfigs" "$APP_GRADLE"; then
-              sed -i '/^android {/a\
-              signingConfigs {\
-                  ci {\
-                      storeFile file("'"$KEYSTORE_PATH"'")\
-                      storePassword "android"\
-                      keyAlias "upload"\
-                      keyPassword "android"\
-                  }\
-              }' "$APP_GRADLE"
-              
-              # Update buildTypes
-              sed -i '/debug {/,/}/ s/}/    signingConfig signingConfigs.ci\n}/' "$APP_GRADLE"
-              sed -i '/release {/,/}/ s/}/    signingConfig signingConfigs.ci\n}/' "$APP_GRADLE"
-            fi
+            sed -i '/^android {/a\
+            signingConfigs {\
+                ci {\
+                    storeFile rootProject.file("../../../../../.ci/upload-keystore.jks")\
+                    storePassword "android"\
+                    keyAlias "upload"\
+                    keyPassword "android"\
+                }\
+            }\
+            buildTypes {\
+                debug {\
+                    signingConfig signingConfigs.ci\
+                }\
+                release {\
+                    signingConfig signingConfigs.ci\
+                }\
+            }' "$APP_GRADLE"
           fi
-          
-          echo "Modified build file:"
-          cat "$APP_GRADLE"
-
-      - name: Fix malformed proguardFiles line
-        run: |
-          APP_GRADLE=$(find src-tauri/gen/android -name 'build.gradle.kts' -path '*/app/*' | head -n1)
-          sed -i '/fileTree.*pro.*signingConfig/d' "$APP_GRADLE"
-          sed -i '/proguardFiles.*getDefaultProguardFile/a\
-            proguardFiles(fileTree(".") { include("**/*.pro") })\
-            signingConfig = signingConfigs.getByName("ci")' "$APP_GRADLE"
-
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
         env:
