@@ -14,6 +14,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Java 17 (required by Android SDK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -26,28 +32,29 @@ jobs:
           node-version: "22.x"
           cache: "pnpm"
 
-      - name: Install Rust and Android target
+      - name: Install Rust with Android target
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android
 
-      - name: Install dependencies
+      - name: Install project dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Set up Android SDK/NDK
+      - name: Install Android SDK and NDK
         uses: android-actions/setup-android@v3
         with:
-          ndk-version: 25.1.8937393
+          accept-android-sdk-licenses: true
+          cmdline-tools-version: 16.0
 
-      - name: Set environment for Tauri Android
+      - name: Set Android build env
         run: |
           echo "MESA_BUILD_TYPE=nightly" >> $env:GITHUB_ENV
           echo "TAURI_ANDROID_TARGET=aarch64-linux-android" >> $env:GITHUB_ENV
-          echo "JAVA_HOME=$Env:JAVA_HOME_17_X64" >> $env:GITHUB_ENV
+          echo "JAVA_HOME=$Env:JAVA_HOME" >> $env:GITHUB_ENV
           echo "ANDROID_HOME=$Env:ANDROID_SDK_ROOT" >> $env:GITHUB_ENV
           echo "NDK_HOME=$Env:ANDROID_NDK_HOME" >> $env:GITHUB_ENV
 
-      - name: Initialize Android project
+      - name: Initialize Tauri Android project
         run: pnpm tauri android init
 
       - name: Build Android APK
