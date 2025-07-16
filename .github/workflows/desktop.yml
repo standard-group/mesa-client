@@ -44,6 +44,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Install prerequisites (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update \
+          sudo apt install libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
       - name: Set build type for nightly
         run: echo "MESA_BUILD_TYPE=nightly" >> $GITHUB_ENV
 
