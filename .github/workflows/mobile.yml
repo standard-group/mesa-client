@@ -175,10 +175,13 @@ jobs:
           echo "Modified build file:"
           cat "$APP_GRADLE"
 
-      - name: Fix Kotlin-DSL syntax on line 51
+      - name: Fix malformed proguardFiles line
         run: |
           APP_GRADLE=$(find src-tauri/gen/android -name 'build.gradle.kts' -path '*/app/*' | head -n1)
-          sed -i -E 's/(fileTree\([^)]*\)\s*\{[^}]*\})\s*(signingConfig.*)/\1\n}\n\2/' "$APP_GRADLE"
+          sed -i '/fileTree.*pro.*signingConfig/d' "$APP_GRADLE"
+          sed -i '/proguardFiles.*getDefaultProguardFile/a\
+            proguardFiles(fileTree(".") { include("**/*.pro") })\
+            signingConfig = signingConfigs.getByName("ci")' "$APP_GRADLE"
 
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
