@@ -43,8 +43,9 @@ jobs:
       - name: Install Android SDK and NDK
         uses: android-actions/setup-android@v3
         with:
+          cmdline-tools-version: 12266719  # This works
           accept-android-sdk-licenses: true
-          cmdline-tools-version: 16.0
+
 
       - name: Set Android build env
         run: |
