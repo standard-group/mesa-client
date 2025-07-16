@@ -56,11 +56,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Tauri Android Init
-        run: pnpm tauri android init
-
       - name: Build Tauri Android APK
-        run: pnpm tauri android build
+        run: | 
+          pnpm tauri android init
+          pnpm tauri android build --apk
 
       - name: Get build date (UTC)
         id: date
