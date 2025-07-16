@@ -90,23 +90,83 @@ jobs:
           NDK_HOME: ${{ env.NDK_HOME }}
 
       # ------------------------------------------------------------------
-      #  One-liner signing (Kotlin DSL safe)
+      #  Fix Android Gradle Plugin application
+      # ------------------------------------------------------------------
+      - name: Fix Android Gradle Plugin
+        run: |
+          # Find the app-level build.gradle.kts file
+          APP_GRADLE=$(find src-tauri/gen/android -name 'build.gradle.kts' -path '*/app/*' | head -n1)
+          
+          # Check if it's a Kotlin DSL file (.kts) or Groovy (.gradle)
+          if [[ "$APP_GRADLE" == *.kts ]]; then
+            # For Kotlin DSL, ensure proper plugin application
+            if ! grep -q "id(\"com.android.application\")" "$APP_GRADLE"; then
+              sed -i '1i\plugins {\n    id("com.android.application")\n    id("org.jetbrains.kotlin.android")\n}' "$APP_GRADLE"
+            fi
+          else
+            # For Groovy, find the regular build.gradle file
+            APP_GRADLE=$(find src-tauri/gen/android -name 'build.gradle' -path '*/app/*' | head -n1)
+            if ! grep -q "id 'com.android.application'" "$APP_GRADLE"; then
+              sed -i '1i\plugins {\n    id '\''com.android.application'\''\n    id '\''org.jetbrains.kotlin.android'\''\n}' "$APP_GRADLE"
+            fi
+          fi
+
+      # ------------------------------------------------------------------
+      #  Create debug keystore and configure signing
       # ------------------------------------------------------------------
       - name: Create debug keystore
         run: |
           mkdir -p .ci
-          keytool -genkey -v -keystore .ci/upload-keystore.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload -storepass android -keypass android -dname "CN=CI,OU=CI,O=CI,L=CI,S=CI,C=US"
-
-            - name: Add signing config (Kotlin DSL)
-      - name: Inject signing into Kotlin DSL build.gradle.kts
-        run: |
-          APP_GRADLE=$(find src-tauri/gen/android -maxdepth 2 -name 'build.gradle.kts' | head -n1)
           keytool -genkey -v -keystore .ci/upload-keystore.jks \
             -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 \
             -alias upload -storepass android -keypass android \
             -dname "CN=CI,OU=CI,O=CI,L=CI,S=CI,C=US"
 
-      - run: sed -i '/^android {/a\    signingConfigs { create("ci") { storeFile = rootProject.file("../../../../.ci/upload-keystore.jks"); storePassword = "android"; keyAlias = "upload"; keyPassword = "android" } }; buildTypes { release { signingConfig = signingConfigs["ci"] }; debug { signingConfig = signingConfigs["ci"] } } }' "$(find src-tauri/gen/android -maxdepth 2 -name 'build.gradle.kts' | head -n1)"
+      - name: Configure signing
+        run: |
+          # Find the correct build file
+          APP_GRADLE=$(find src-tauri/gen/android -name 'build.gradle*' -path '*/app/*' | head -n1)
+          
+          if [[ "$APP_GRADLE" == *.kts ]]; then
+            # Kotlin DSL approach
+            # Insert signing configuration after the android { block starts
+            sed -i '/^android {/a\
+            signingConfigs {\
+                create("ci") {\
+                    storeFile = rootProject.file("../../../../.ci/upload-keystore.jks")\
+                    storePassword = "android"\
+                    keyAlias = "upload"\
+                    keyPassword = "android"\
+                }\
+            }\
+            buildTypes {\
+                getByName("debug") {\
+                    signingConfig = signingConfigs.getByName("ci")\
+                }\
+                getByName("release") {\
+                    signingConfig = signingConfigs.getByName("ci")\
+                }\
+            }' "$APP_GRADLE"
+          else
+            # Groovy approach
+            sed -i '/^android {/a\
+            signingConfigs {\
+                ci {\
+                    storeFile rootProject.file("../../../../.ci/upload-keystore.jks")\
+                    storePassword "android"\
+                    keyAlias "upload"\
+                    keyPassword "android"\
+                }\
+            }\
+            buildTypes {\
+                debug {\
+                    signingConfig signingConfigs.ci\
+                }\
+                release {\
+                    signingConfig signingConfigs.ci\
+                }\
+            }' "$APP_GRADLE"
+          fi
 
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
