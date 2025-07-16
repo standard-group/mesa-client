@@ -190,6 +190,14 @@ a:hover {
     cursor: move;
 }
 
+.titlebar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    -webkit-app-region: no-drag;
+    cursor: default;
+}
+
 .titlebar-title {
     font-size: 14px;
     font-weight: 500;
@@ -220,6 +228,35 @@ a:hover {
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 12px;
+}
+
+.back-button {
+    -webkit-app-region: no-drag;
+    width: 40px;
+    height: 32px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #cccccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+}
+
+.back-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.back-button:active {
+    transform: scale(0.95);
+}
+
+.back-button svg {
+    width: 16px;
+    height: 16px;
 }
 
 .titlebar-button:hover {

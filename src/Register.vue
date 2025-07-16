@@ -2,11 +2,9 @@
 import { ref, watch } from "vue"; // Added watch
 import { useRouter } from 'vue-router';
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 
 // TODO: Implement this all later and better (localstorage encryption)
 
-const win = getCurrentWindow();
 const router = useRouter();
 
 const username = ref("");
@@ -98,68 +96,10 @@ async function handleRegister() {
 const goBack = () => {
     router.push('/login');
 };
-
-const minimizeWindow = async () => {
-    try {
-        await win.minimize();
-    } catch (error) {
-        console.error("minimize failed:", error);
-    }
-};
-
-const maximizeWindow = async () => {
-    try {
-        const isMax = await win.isMaximized();
-        if (isMax) {
-            await win.unmaximize();
-        } else {
-            await win.maximize();
-        }
-    } catch (error) {
-        console.error("toggleMaximize failed:", error);
-    }
-};
-
-const closeWindow = async () => {
-    try {
-        await win.close();
-    } catch (e) {
-        console.error("close failed", e);
-    }
-};
 </script>
 
 <template>
     <main class="app-container">
-        <div class="titlebar">
-            <div class="titlebar-left">
-                <button class="back-button" @click="goBack" type="button">
-                    <svg width="16" height="16" viewBox="0 0 16 16">
-                        <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" fill="none" />
-                    </svg>
-                </button>
-                <div class="titlebar-title">Project Mesa - Register</div>
-            </div>
-            <div class="titlebar-controls">
-                <button class="titlebar-button minimize" @click.stop="minimizeWindow" type="button">
-                    <svg width="16" height="16" viewBox="0 0 16 16">
-                        <rect x="3" y="7" width="10" height="2" fill="currentColor" />
-                    </svg>
-                </button>
-                <button class="titlebar-button maximize" @click.stop="maximizeWindow" type="button">
-                    <svg width="16" height="16" viewBox="0 0 16 16">
-                        <rect x="3" y="3" width="10" height="10" stroke="currentColor" stroke-width="1.5" fill="none" />
-                    </svg>
-                </button>
-                <button class="titlebar-button close" @click.stop="closeWindow" type="button">
-                    <svg width="16" height="16" viewBox="0 0 16 16">
-                        <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-
         <div class="register-container">
             <div class="register-content">
                 <div class="logo-section">
@@ -235,119 +175,7 @@ const closeWindow = async () => {
     overflow: hidden;
 }
 
-.titlebar {
-    -webkit-app-region: drag;
-    height: 40px;
-    background: rgba(26, 26, 26, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    user-select: none;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 1000;
-    cursor: move;
-}
 
-.titlebar-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    -webkit-app-region: no-drag;
-    cursor: default;
-}
-
-.titlebar-title {
-    font-size: 14px;
-    font-weight: 500;
-    color: #cccccc;
-    pointer-events: none;
-}
-
-.titlebar-controls {
-    -webkit-app-region: no-drag;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    height: 100%;
-    cursor: default;
-}
-
-.back-button {
-    -webkit-app-region: no-drag;
-    width: 40px;
-    height: 32px;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: #cccccc;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 12px;
-}
-
-.back-button:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.back-button:active {
-    transform: scale(0.95);
-}
-
-.back-button svg {
-    width: 16px;
-    height: 16px;
-}
-
-.titlebar-button {
-    -webkit-app-region: no-drag;
-    width: 40px;
-    height: 32px;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: #cccccc;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 12px;
-}
-
-.titlebar-button:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.titlebar-button.minimize:hover {
-    background: rgba(255, 196, 0, 0.15);
-    color: #ffc400;
-}
-
-.titlebar-button.maximize:hover {
-    background: rgba(40, 167, 69, 0.15);
-    color: #28a745;
-}
-
-.titlebar-button.close:hover {
-    background: rgba(220, 53, 69, 0.15);
-    color: #dc3545;
-}
-
-.titlebar-button:active {
-    transform: scale(0.95);
-}
-
-.titlebar-button svg {
-    width: 16px;
-    height: 16px;
-}
 
 .register-container {
     flex: 1;
@@ -598,20 +426,6 @@ const closeWindow = async () => {
 @media (max-width: 400px) {
     .register-content {
         padding: 1.5rem;
-    }
-
-    .titlebar {
-        height: 32px;
-        padding: 0 12px;
-    }
-
-    .titlebar-title {
-        font-size: 12px;
-    }
-
-    .titlebar-button {
-        width: 32px;
-        height: 24px;
     }
 }
 </style>
