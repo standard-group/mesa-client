@@ -51,9 +51,9 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            pwsh ./scripts/build.ps1
+            pwsh ./ci/build.ps1
           else
-            bash ./scripts/build.sh
+            bash ./ci/build.sh
           fi
 
       - name: Get build date (UTC)
