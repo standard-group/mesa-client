@@ -52,14 +52,18 @@ jobs:
             build-tools;34.0.0
             ndk;25.2.9519653
 
-      - name: Locate installed NDK 25.2.9519653
-        id: ndk-path
+      - name: Find real NDK root (the folder with source.properties)
+        id: ndk-root
         run: |
-          ndk_path=$(dirname "$(find "$ANDROID_SDK_ROOT" -type f -name ndk-build | grep -E '25\.2\.9519653' | head -n1)")
-          echo "NDK_ROOT=$ndk_path" >> $GITHUB_ENV
-          echo "NDK_HOME=$ndk_path" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=$ndk_path" >> $GITHUB_ENV
-          echo "Found NDK at $ndk_path"
+          ndk_root=$(find "$ANDROID_SDK_ROOT" -type f -name source.properties -exec dirname {} \; | grep -E '25\.2\.9519653' | head -n1)
+          if [ -z "$ndk_root" ]; then
+            echo "❌ NDK 25.2.9519653 not found"
+            exit 1
+          fi
+          echo "ANDROID_NDK_ROOT=$ndk_root" >> $GITHUB_ENV
+          echo "NDK_HOME=$ndk_root" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ndk_root" >> $GITHUB_ENV
+          echo "✅ NDK root: $ndk_root"
 
       - name: Verify NDK path exists
         run: ls -la "$ANDROID_NDK_ROOT"
