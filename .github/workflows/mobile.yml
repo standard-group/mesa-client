@@ -117,30 +117,27 @@ jobs:
             -keypass android \
             -dname "CN=CI, OU=CI, O=CI, L=CI, S=CI, C=US"
 
-      - name: Inject signing config into Gradle
+      - name: Inject signing config into Gradle (safe patch)
         run: |
-          cat >> src-tauri/gen/android/app/build.gradle <<'EOF'
-
-          android {
-              signingConfigs {
-                  ci {
-                      storeFile file(System.getenv("RUNNER_TEMP") + "/upload-keystore.jks")
-                      storePassword "android"
-                      keyAlias "upload"
-                      keyPassword "android"
-                  }
-              }
-
-              buildTypes {
-                  release {
-                      signingConfig signingConfigs.ci
-                  }
-                  debug {
-                      signingConfig signingConfigs.ci
-                  }
-              }
-          }
-          EOF
+          # Patch only after the existing android block starts
+          sed -i "/^android {/a\\
+          \    signingConfigs {\\
+          \        ci {\\
+          \            storeFile file(System.getenv('RUNNER_TEMP') + '/upload-keystore.jks')\\
+          \            storePassword 'android'\\
+          \            keyAlias 'upload'\\
+          \            keyPassword 'android'\\
+          \        }\\
+          \    }\\
+          \\
+          \    buildTypes {\\
+          \        release {\\
+          \            signingConfig signingConfigs.ci\\
+          \        }\\
+          \        debug {\\
+          \            signingConfig signingConfigs.ci\\
+          \        }\\
+          \    }" src-tauri/gen/android/app/build.gradle
 
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
