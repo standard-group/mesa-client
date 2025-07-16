@@ -175,6 +175,11 @@ jobs:
           echo "Modified build file:"
           cat "$APP_GRADLE"
 
+      - name: Fix misplaced signingConfig inside fileTree
+        run: |
+          APP_GRADLE=$(find src-tauri/gen/android -name 'build.gradle.kts' -path '*/app/*' | head -n1)
+          sed -i -E 's|(fileTree\([^)]*\)\s*\{[^}]*\})\s*(signingConfig.*)|\1\n\2|' "$APP_GRADLE"
+
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
         env:
