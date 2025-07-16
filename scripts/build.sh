@@ -45,5 +45,4 @@ echo ""
 
 pnpm tauri build
 
-# Optional: unset variable after build
 unset MESA_BUILD_TYPE
