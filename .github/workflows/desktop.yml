@@ -47,14 +47,16 @@ jobs:
       - name: Set build type for nightly
         run: echo "MESA_BUILD_TYPE=nightly" >> $GITHUB_ENV
 
-      - name: Run Tauri build script
+      - name: Run Tauri build script (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./ci/build.ps1
+
+      - name: Run Tauri build script (Linux/macOS)
+        if: runner.os != 'Windows'
         shell: bash
-        run: |
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            pwsh ./ci/build.ps1
-          else
-            bash ./ci/build.sh
-          fi
+        run: ./ci/build.sh
+
 
       - name: Get build date (UTC)
         id: date
