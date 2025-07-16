@@ -4,6 +4,8 @@
 
 Thank you for your interest in contributing to the Project Mesa Client! We welcome all kinds of contributions, whether it's code, documentation, bug reports, or suggestions.
 
+Please make sure to make Pull Requests to the `dev` branch, as there, your feature/fix will be merged later into `main` branch.
+
 ## How to Contribute
 
 1. **Fork the repository**
