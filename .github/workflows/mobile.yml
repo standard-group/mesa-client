@@ -14,9 +14,14 @@ permissions:
   actions: write
 
 jobs:
-  build:
+build:
     name: Build for Android
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+      NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/25.2.9519653
+      ANDROID_NDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}/ndk/25.2.9519653
+      ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/25.2.9519653
 
     steps:
       - name: Checkout repository
@@ -50,14 +55,9 @@ jobs:
         with:
           extra-packages: platform-tools platforms;android-34 build-tools;34.0.0 ndk;25.2.9519653
 
-      - name: Set Android environment variables
+      - name: Verify NDK path exists
         run: |
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
-          # Verify NDK path exists
-          ls -la $ANDROID_SDK_ROOT/ndk/ || echo "NDK directory not found"
+          ls -la $ANDROID_NDK_ROOT || echo "NDK directory not found"
 
       - name: Set up environment for Android build
         run: |
