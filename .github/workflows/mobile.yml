@@ -22,29 +22,22 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
-          run_install: false
+        with: { version: 10, run_install: false }
 
       - name: Install Node.js
         uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "pnpm"
+        with: { node-version: "22", cache: "pnpm" }
 
       - name: Install Rust + Android targets
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+        with: { targets: "aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android" }
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
-        with:
-          java-version: "17"
-          distribution: "temurin"
+        with: { java-version: "17", distribution: "temurin" }
 
       # ------------------------------------------------------------------
-      #  Download & install NDK 25.2.9519653
+      #  NDK 25.2.9519653 (r25b)
       # ------------------------------------------------------------------
       - name: Download & install NDK 25.2.9519653
         run: |
@@ -60,11 +53,7 @@ jobs:
       - name: Sanity-check NDK
         run: |
           test -f "$ANDROID_NDK_ROOT/source.properties" || { echo "NDK broken"; exit 1; }
-          echo "✅ NDK ready at $ANDROID_NDK_ROOT"
 
-      # ------------------------------------------------------------------
-      #  Android SDK components (NDK already in place)
-      # ------------------------------------------------------------------
       - name: Install Android SDK components
         uses: android-actions/setup-android@v3
         with:
@@ -74,7 +63,7 @@ jobs:
             build-tools;34.0.0
 
       # ------------------------------------------------------------------
-      #  Cargo linker overrides
+      #  Rust linker overrides
       # ------------------------------------------------------------------
       - name: Create .cargo/config.toml
         run: |
@@ -82,13 +71,10 @@ jobs:
           cat > .cargo/config.toml <<'EOF'
           [target.aarch64-linux-android]
           linker = "aarch64-linux-android24-clang"
-
           [target.armv7-linux-androideabi]
           linker = "armv7a-linux-androideabi24-clang"
-
           [target.i686-linux-android]
           linker = "i686-linux-android24-clang"
-
           [target.x86_64-linux-android]
           linker = "x86_64-linux-android24-clang"
           EOF
@@ -104,43 +90,17 @@ jobs:
           NDK_HOME: ${{ env.NDK_HOME }}
 
       # ------------------------------------------------------------------
-      #  Create throw-away debug keystore + insert signing config
+      #  One-liner signing (Kotlin DSL safe)
       # ------------------------------------------------------------------
-      - name: Create .ci directory & debug keystore
+      - name: Create debug keystore
         run: |
           mkdir -p .ci
-          keytool -genkey -v \
-            -keystore .ci/upload-keystore.jks \
-            -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 \
-            -alias upload \
-            -storepass android \
-            -keypass android \
-            -dname "CN=CI, OU=CI, O=CI, L=CI, S=CI, C=US"
+          keytool -genkey -v -keystore .ci/upload-keystore.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload -storepass android -keypass android -dname "CN=CI,OU=CI,O=CI,L=CI,S=CI,C=US"
 
-      - name: Patch build.gradle to sign APKs
+      - name: Inject signing
         run: |
-          set -e
-          APP_GRADLE=$(find src-tauri/gen/android -maxdepth 2 -name 'build.gradle*' | head -n1)
-          [ -z "$APP_GRADLE" ] && { echo "No build.gradle(.kts) found"; exit 1; }
-
-          echo "Patching $APP_GRADLE"
-
-          cat >> "$APP_GRADLE" <<'GRADLE'
-          android {
-            signingConfigs {
-              ci {
-                storeFile rootProject.file('../../../../.ci/upload-keystore.jks')
-                storePassword "android"
-                keyAlias "upload"
-                keyPassword "android"
-              }
-            }
-            buildTypes {
-              release { signingConfig signingConfigs.ci }
-              debug   { signingConfig signingConfigs.ci }
-            }
-          }
-          GRADLE
+          APP_GRADLE=$(find src-tauri/gen/android -maxdepth 2 -name 'build.gradle.kts' | head -n1)
+          printf '%s\n' 'android {' ' signingConfigs {' '  create("ci") {' '   storeFile = rootProject.file("../../../../.ci/upload-keystore.jks")' '   storePassword = "android"' '   keyAlias = "upload"' '   keyPassword = "android"' '  }' ' }' ' buildTypes {' '  release { signingConfig = signingConfigs["ci"] }' '  debug   { signingConfig = signingConfigs["ci"] }' ' }' '}' >> "$APP_GRADLE"
 
       - name: Build APK for all targets
         run: pnpm tauri android build --apk
