@@ -57,6 +57,12 @@ jobs:
 
       - name: Build APK
         run: pnpm tauri android build --apk
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          NDK_HOME: ${{ env.NDK_HOME }}
+          OPENSSL_STATIC: 1
+          OPENSSL_NO_VENDOR: 0
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
