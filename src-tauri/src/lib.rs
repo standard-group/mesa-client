@@ -1,5 +1,5 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-// commenting 
+// commenting
 use base64::{engine::general_purpose, Engine as _};
 use ed25519_dalek::SigningKey;
 use rand::rngs::OsRng;
@@ -19,38 +19,48 @@ use tauri::{AppHandle, Manager};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeypairResponse {
     pub public_key: String,
-    pub private_key: String, // TODO: encrypt this server-side or encrypt it before sending to client storage.
+    pub private_key: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncryptedKeyResponse {
     pub encrypted_data_base64: String,
     pub salt_base64: String,
     pub nonce_base64: String, // IV for AES-GCM
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GeneratedAndEncryptedKeys {
+    pub public_key: String,
+    pub encrypted_key_package: EncryptedKeyResponse,
+}
+
 fn get_key_storage_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
     let dir = app_handle
         .path()
         .app_config_dir()
-        .map_err(|e| format!("Failed to find config dir: {}", e))?;
+        .map_err(|_| "Failed to find application config directory.".to_string())?;
     let path = dir.join("mesa").join("private_key.json");
     Ok(path)
 }
 
 fn store_encrypted_key(app_handle: &AppHandle, data: &EncryptedKeyResponse) -> Result<(), String> {
-    let json = serde_json::to_string(data).map_err(|e| e.to_string())?;
+    let json =
+        serde_json::to_string(data).map_err(|_| "Failed to serialize key data.".to_string())?;
     let path = get_key_storage_path(app_handle)?;
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        std::fs::create_dir_all(parent)
+            .map_err(|_| "Failed to create key storage directory.".to_string())?;
     }
-    std::fs::write(path, json).map_err(|e| e.to_string())
+    std::fs::write(path, json).map_err(|_| "Failed to write key file to disk.".to_string())
 }
 
 fn load_encrypted_key(app_handle: &AppHandle) -> Result<EncryptedKeyResponse, String> {
     let path = get_key_storage_path(app_handle)?;
-    let content = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
-    let data: EncryptedKeyResponse = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    let content =
+        std::fs::read_to_string(path).map_err(|_| "Failed to read key file.".to_string())?;
+    let data: EncryptedKeyResponse =
+        serde_json::from_str(&content).map_err(|_| "Failed to parse key file.".to_string())?;
     Ok(data)
 }
 
@@ -59,44 +69,25 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
-/// Generates a new Ed25519 public and private key pair.
-/// Returns the public and private keys as base64-encoded strings.
+/// Generates a new keypair and immediately encrypts the private key with the user's password.
+/// This prevents the plaintext private key from ever being sent to the frontend.
 #[tauri::command]
-async fn generate_keypair() -> Result<KeypairResponse, String> {
+async fn generate_and_encrypt_keypair(
+    password: String,
+) -> Result<GeneratedAndEncryptedKeys, String> {
+    // 1. Generate keypair inside this function
     let mut csprng = OsRng;
     let keypair: SigningKey = SigningKey::generate(&mut csprng);
-
     let public_key_bytes = keypair.verifying_key().to_bytes();
-    let secret_key_bytes = keypair.to_bytes();
+    let secret_key_bytes = keypair.to_bytes(); // Kept in memory only for this function's scope
 
-    let public_key_base64 = general_purpose::STANDARD.encode(&public_key_bytes);
-    let private_key_base64 = general_purpose::STANDARD.encode(&secret_key_bytes);
-
-    Ok(KeypairResponse {
-        public_key: public_key_base64,
-        private_key: private_key_base64,
-    })
-}
-
-/// Encrypts a private key using AES-256 GCM with a key derived from a password via PBKDF2.
-/// Returns the encrypted data, salt, and nonce (IV) as base64-encoded strings.
-#[tauri::command]
-async fn encrypt_private_key(
-    private_key_base64: String,
-    password: String,
-) -> Result<EncryptedKeyResponse, String> {
-    // Decode the private key from base64
-    let private_key_bytes = general_purpose::STANDARD
-        .decode(&private_key_base64)
-        .map_err(|e| format!("Failed to decode private key: {}", e))?;
-
-    // Generate a random salt
-    let mut salt = [0u8; 16]; // 128-bit salt
+    // 2. Generate a random salt
+    let mut salt = [0u8; 16];
     thread_rng().fill_bytes(&mut salt);
 
-    // Derive a 32-byte (256-bit) AES key from the password and salt using PBKDF2
-    const PBKDF2_ITERATIONS: u32 = 100_000;
-    let mut key_bytes = [0u8; 32]; // 256-bit key
+    // 3. Derive key from password with increased iterations
+    const PBKDF2_ITERATIONS: u32 = 600_000;
+    let mut key_bytes = [0u8; 32];
     pbkdf2_hmac::<Sha256>(
         &password.as_bytes(),
         &salt,
@@ -106,20 +97,24 @@ async fn encrypt_private_key(
     let key = Key::<Aes256Gcm>::from_slice(&key_bytes);
     let cipher = Aes256Gcm::new(key);
 
-    // Generate a random nonce (Initialization Vector) for AES-GCM
-    let mut nonce_bytes = [0u8; 12]; // 96-bit nonce for GCM
+    // 4. Generate a random nonce
+    let mut nonce_bytes = [0u8; 12];
     thread_rng().fill_bytes(&mut nonce_bytes);
     let nonce = Nonce::from_slice(&nonce_bytes);
 
-    // Encrypt the private key
+    // 5. Encrypt the secret key bytes
     let ciphertext = cipher
-        .encrypt(nonce, private_key_bytes.as_ref())
-        .map_err(|e| format!("Encryption failed: {}", e))?;
+        .encrypt(nonce, secret_key_bytes.as_ref())
+        .map_err(|_| "Encryption failed".to_string())?;
 
-    Ok(EncryptedKeyResponse {
-        encrypted_data_base64: general_purpose::STANDARD.encode(&ciphertext),
-        salt_base64: general_purpose::STANDARD.encode(&salt),
-        nonce_base64: general_purpose::STANDARD.encode(&nonce_bytes),
+    // 6. Return only the public key and the encrypted blob
+    Ok(GeneratedAndEncryptedKeys {
+        public_key: general_purpose::STANDARD.encode(&public_key_bytes),
+        encrypted_key_package: EncryptedKeyResponse {
+            encrypted_data_base64: general_purpose::STANDARD.encode(&ciphertext),
+            salt_base64: general_purpose::STANDARD.encode(&salt),
+            nonce_base64: general_purpose::STANDARD.encode(&nonce_bytes),
+        },
     })
 }
 
@@ -133,16 +128,16 @@ async fn decrypt_private_key(
     // Decode the base64 components
     let encrypted_data_bytes = general_purpose::STANDARD
         .decode(&encrypted_response.encrypted_data_base64)
-        .map_err(|e| format!("Failed to decode encrypted data: {}", e))?;
+        .map_err(|_| "Failed to decode encrypted data.".to_string())?;
     let salt_bytes = general_purpose::STANDARD
         .decode(&encrypted_response.salt_base64)
-        .map_err(|e| format!("Failed to decode salt: {}", e))?;
+        .map_err(|_| "Failed to decode salt.".to_string())?;
     let nonce_bytes = general_purpose::STANDARD
         .decode(&encrypted_response.nonce_base64)
-        .map_err(|e| format!("Failed to decode nonce: {}", e))?;
+        .map_err(|_| "Failed to decode nonce.".to_string())?;
 
     // Derive the key using the provided password and the stored salt
-    const PBKDF2_ITERATIONS: u32 = 100_000;
+    const PBKDF2_ITERATIONS: u32 = 600_000;
     let mut key_bytes = [0u8; 32];
     pbkdf2_hmac::<Sha256>(
         password.as_bytes(),
@@ -158,31 +153,33 @@ async fn decrypt_private_key(
     // Decrypt the data
     let plaintext = cipher
         .decrypt(nonce, encrypted_data_bytes.as_ref())
-        .map_err(|e| format!("Decryption failed: {}", e))?;
+        .map_err(|_| "Decryption failed. Please check your password.".to_string())?;
 
     // Return the decrypted private key as base64
     Ok(general_purpose::STANDARD.encode(&plaintext))
 }
 
 #[tauri::command]
-async fn register(username: String, password: String, server: String) -> Result<String, String> {
-    let keypair = generate_keypair().await?;
-    
-    // Clone the password before using it in encrypt_private_key
-    let _encrypted = encrypt_private_key(keypair.private_key.clone(), password.clone()).await?;
+async fn register(
+    app_handle: AppHandle,
+    username: String,
+    password: String,
+    server: String,
+) -> Result<String, String> {
+    let generated_keys = generate_and_encrypt_keypair(password.clone()).await?;
+
+    store_encrypted_key(&app_handle, &generated_keys.encrypted_key_package)?;
 
     let payload = serde_json::json!({
         "username": username,
         "server_domain": server,
         "password": password,
-        "pubkey": keypair.public_key,
+        "pubkey": generated_keys.public_key,
     });
-    
-    // TODO: remove this (only for debugging)
-    println!("{}", &payload.to_string());
 
-    // TODO: change to https (http only for debugging right now)
-    let url = format!("http://{}/api/v1/register", server);
+    // println!("{}", &payload.to_string());
+
+    let url = format!("https://{}/api/v1/register", server);
 
     let client = reqwest::Client::new();
     let res = client
@@ -190,9 +187,12 @@ async fn register(username: String, password: String, server: String) -> Result<
         .json(&payload)
         .send()
         .await
-        .map_err(|e| format!("Request failed: {}", e))?;
+        .map_err(|_| "Failed to send registration request to the server.".to_string())?;
 
-    let body = res.text().await.map_err(|e| e.to_string())?;
+    let body = res
+        .text()
+        .await
+        .map_err(|_| "Failed to read response from the server.".to_string())?;
     Ok(body)
 }
 
@@ -204,7 +204,7 @@ async fn login(username: String, password: String, server: String) -> Result<Str
         "password": password,
     });
 
-    let url = format!("http://{}/api/v1/login", server);
+    let url = format!("https://{}/api/v1/login", server);
 
     let client = reqwest::Client::new();
     let res = client
@@ -212,9 +212,12 @@ async fn login(username: String, password: String, server: String) -> Result<Str
         .json(&payload)
         .send()
         .await
-        .map_err(|e| format!("Request failed: {}", e))?;
+        .map_err(|_| "Failed to send login request to the server.".to_string())?;
 
-    let body = res.text().await.map_err(|e| e.to_string())?;
+    let body = res
+        .text()
+        .await
+        .map_err(|_| "Failed to read response from the server.".to_string())?;
     Ok(body)
 }
 
@@ -255,8 +258,7 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .invoke_handler(tauri::generate_handler![
             greet,
-            generate_keypair,
-            encrypt_private_key,
+            generate_and_encrypt_keypair,
             decrypt_private_key,
             register,
             login,
