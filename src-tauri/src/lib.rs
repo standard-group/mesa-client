@@ -179,7 +179,7 @@ async fn register(
 
     // println!("{}", &payload.to_string());
 
-    let url = format!("https://{}/api/v1/register", server);
+    let url = format!("http://{}/api/v1/register", server);
 
     let client = reqwest::Client::new();
     let res = client
