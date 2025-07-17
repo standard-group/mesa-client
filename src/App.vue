@@ -28,11 +28,13 @@
     </div>
   </div>
 
-  <router-view v-slot="{ Component }">
-    <Transition name="slide-left" mode="out-in">
-      <component :is="Component" class="router-view-content" />
-    </Transition>
-  </router-view>
+  <div class="app-content" :class="{ 'with-titlebar': isDesktop }">
+    <router-view v-slot="{ Component }">
+      <Transition name="slide-left" mode="out-in">
+        <component :is="Component" />
+      </Transition>
+    </router-view>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -62,7 +64,6 @@ onMounted(async () => {
 });
 
 /* titlebar */
-
 const win = getCurrentWindow();
 const minimize = () => win.minimize();
 const maximize = async () => {
@@ -75,7 +76,6 @@ const goBack = () => {
 };
 
 /* build */
-
 console.log('Mesa Version:', version);
 </script>
 
@@ -94,12 +94,19 @@ console.log('Mesa Version:', version);
   -webkit-text-size-adjust: 100%;
 }
 
+html {
+  font-size: clamp(14px, 1vw, 18px);
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   padding: 0;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  font-size: 1rem;
 }
 
 #app {
@@ -107,25 +114,27 @@ body {
   width: 100vw;
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* Original input, button, and anchor styles - Centralized here */
 input,
 button {
-  border-radius: 8px;
+  border-radius: clamp(6px, 0.5vw, 8px);
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
+  padding: clamp(0.4em, 0.8vw, 0.6em) clamp(0.8em, 1.5vw, 1.2em);
+  font-size: clamp(0.875rem, 1.2vw, 1rem);
   font-weight: 500;
   font-family: inherit;
   background-color: #2a2a2a;
   color: #ffffff;
   transition: border-color 0.25s;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+  min-height: 44px; 
 }
 
 input:focus,
@@ -144,7 +153,19 @@ a:hover {
   color: #ffffff;
 }
 
-.router-view-content {
+.app-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+.app-content.with-titlebar {
+  height: calc(100vh - 40px);
+}
+
+.app-content > * {
   width: 100%;
   height: 100%;
   position: absolute;
@@ -154,25 +175,21 @@ a:hover {
 
 .slide-left-enter-active,
 .slide-left-leave-active {
-  /* i hope it is better */
   transition: transform 0.4s cubic-bezier(0.36, 0.66, 0.04, 1),
     opacity 0.4s cubic-bezier(0.36, 0.66, 0.04, 1);
 }
 
 .slide-left-enter-from {
-  transform: translateX(30px);
-  /* start slightly closer for a quicker feel */
+  transform: translateX(clamp(20px, 3vw, 30px));
   opacity: 0;
 }
 
 .slide-left-leave-to {
-  transform: translateX(-30px);
-  /* exit slightly closer */
+  transform: translateX(clamp(-20px, -3vw, -30px));
   opacity: 0;
 }
 
-/* ** TITLEBAR ** */
-
+/* TITLEBAR with improved scaling */
 .titlebar {
     -webkit-app-region: drag;
     height: 40px;
@@ -182,42 +199,46 @@ a:hover {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
+    padding: 0 clamp(12px, 2vw, 16px);
     user-select: none;
     flex-shrink: 0;
     position: relative;
     z-index: 1000;
     cursor: move;
+    min-height: 40px;
 }
 
 .titlebar-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: clamp(6px, 1vw, 8px);
     -webkit-app-region: no-drag;
     cursor: default;
 }
 
 .titlebar-title {
-    font-size: 14px;
+    font-size: clamp(12px, 1.2vw, 14px);
     font-weight: 500;
     color: #cccccc;
     pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .titlebar-controls {
     -webkit-app-region: no-drag;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: clamp(2px, 0.5vw, 4px);
     height: 100%;
     cursor: default;
 }
 
 .titlebar-button {
     -webkit-app-region: no-drag;
-    width: 40px;
-    height: 32px;
+    width: clamp(36px, 4vw, 40px);
+    height: clamp(28px, 3.5vw, 32px);
     border: none;
     border-radius: 4px;
     background: transparent;
@@ -228,12 +249,14 @@ a:hover {
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 12px;
+    min-width: 36px;
+    min-height: 28px;
 }
 
 .back-button {
     -webkit-app-region: no-drag;
-    width: 40px;
-    height: 32px;
+    width: clamp(36px, 4vw, 40px);
+    height: clamp(28px, 3.5vw, 32px);
     border: none;
     border-radius: 4px;
     background: transparent;
@@ -244,6 +267,8 @@ a:hover {
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 12px;
+    min-width: 36px;
+    min-height: 28px;
 }
 
 .back-button:hover {
@@ -287,9 +312,10 @@ a:hover {
     height: 16px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
     .titlebar {
         height: 36px;
+        padding: 0 12px;
     }
 
     .titlebar-title {
@@ -301,27 +327,20 @@ a:hover {
         height: 28px;
     }
 
-    .app-container {
-        flex-direction: column;
+    .back-button {
+        width: 36px;
+        height: 28px;
     }
 
-    .header-section {
-        flex: 0.5;
-        min-height: 35vh;
-        padding: 1rem;
-    }
-
-    .content-section {
-        flex: 0.5;
-        min-height: 30vh;
-        padding: 1rem;
+    .app-content.with-titlebar {
+        height: calc(100vh - 36px);
     }
 }
 
-@media (max-width: 400px) {
+@media (max-width: 480px) {
     .titlebar {
         height: 32px;
-        padding: 0 12px;
+        padding: 0 8px;
     }
 
     .titlebar-title {
@@ -333,39 +352,39 @@ a:hover {
         height: 24px;
     }
 
-    .header-section {
-        min-height: 30vh;
-        padding: 0.5rem;
+    .back-button {
+        width: 32px;
+        height: 24px;
     }
 
-    .content-section {
-        padding: 0.5rem;
+    .app-content.with-titlebar {
+        height: calc(100vh - 32px);
+    }
+}
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .titlebar {
+        border-bottom-width: 0.5px;
+    }
+    
+    input,
+    button {
+        border-width: 0.5px;
     }
 }
 
 @media (max-width: 768px) and (orientation: landscape) {
-    .app-container {
-        flex-direction: row;
-    }
-
     .titlebar {
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
         right: 0;
         z-index: 1000;
     }
 
-    .header-section {
-        flex: 0.5;
-        min-height: calc(100vh - 40px);
-        margin-top: 40px;
-    }
-
-    .content-section {
-        flex: 0.5;
-        min-height: calc(100vh - 40px);
-        margin-top: 40px;
+    .app-content.with-titlebar {
+        height: calc(100vh - 36px);
+        margin-top: 36px;
     }
 }
 </style>
