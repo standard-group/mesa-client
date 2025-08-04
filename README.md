@@ -1,5 +1,5 @@
 ![Start background image for GitHub's README](public/startbgforgithub.jpg)
-
+⚠️ **Warning: This project is a Work In Progress (WIP) and not yet stable. Features and APIs may change, and the application is not ready for production use. Use at your own risk and follow the repository for updates.**
 <div align="center">
     <img alt="Desktop Build Mesa (nightly)" src="https://github.com/standard-group/mesa-client/actions/workflows/desktop.yml/badge.svg?branch=main" href="https://github.com/standard-group/mesa-client/actions/workflows/desktop.yml">
     <img alt="Mobile Build Mesa (nightly)" src="https://github.com/standard-group/mesa-client/actions/workflows/mobile.yml/badge.svg?branch=main" href="https://github.com/standard-group/mesa-client/actions/workflows/mobile.yml">
